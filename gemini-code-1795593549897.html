@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>CAT PIRATES 1.0｜東海篇章 · 風車村 × 謝爾茲鎮雙站探索</title>
+<style>
+  :root {
+    --bg: #05101c;
+    --panel: #0c1f33;
+    --panel-2: #132d47;
+    --line: #28547a;
+    --gold: #ffd166;
+    --mint: #00f5d4;
+    --rose: #ff4d8d;
+    --sky: #7bdff2;
+    --text: #f4fbff;
+    --muted: #9bc0da;
+    --safe-b: env(safe-area-inset-bottom, 12px);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: radial-gradient(circle at 50% 0%, #193e63 0%, var(--bg) 76%);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 580px;
+    margin: 0 auto;
+    padding: 12px 12px calc(108px + var(--safe-b));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* 頂部篇章與記憶列 */
+  .top-bar {
+    background: linear-gradient(135deg, var(--panel-2), var(--panel));
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    padding: 11px 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .arc-title {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--gold);
+  }
+
+  .arc-sub {
+    font-size: 11px;
+    color: var(--mint);
+    margin-top: 2px;
+  }
+
+  .top-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .pill {
+    background: rgba(5, 14, 24, 0.84);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--gold);
+  }
+
+  .icon-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 5px 9px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  /* 東海五區航路與四貓選擇 */
+  .strip {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .strip::-webkit-scrollbar { display: none; }
+
+  .node-btn {
+    flex: 0 0 auto;
+    background: var(--panel);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 7px 11px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .node-btn.active {
+    border-color: var(--mint);
+    background: rgba(0, 245, 212, 0.14);
+    color: var(--text);
+  }
+
+  .node-btn.locked {
+    opacity: 0.55;
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+
+  .cat-btn {
+    flex: 0 0 auto;
+    background: var(--panel);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 7px 11px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .cat-btn.active {
+    border-color: var(--gold);
+    background: rgba(255, 209, 102, 0.15);
+    color: var(--gold);
+  }
+
+  /* 海面探索舞台 */
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 245px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 2px solid #4582b5;
+    background: #071929;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  }
+
+  #stage-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  @keyframes biteShake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-5px, 3px); }
+    50% { transform: translate(5px, -3px); }
+    75% { transform: translate(-4px, -2px); }
+  }
+
+  .shake-bite { animation: biteShake 0.25s linear; }
+
+  .hud-badge {
+    position: absolute;
+    top: 10px;
+    background: rgba(5, 14, 24, 0.84);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    pointer-events: none;
+  }
+
+  .hud-l { left: 10px; color: var(--sky); }
+  .hud-r { right: 10px; color: var(--gold); }
+
+  .bite-pop {
+    position: absolute;
+    top: 44px;
+    left: 50%;
+    transform: translateX(-50%) scale(0.92);
+    background: linear-gradient(90deg, var(--rose), #ff9f1c);
+    color: #fff;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 900;
+    opacity: 0;
+    transition: opacity 0.14s ease, transform 0.14s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .bite-pop.show {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.03);
+  }
+
+  /* 單次釣魚收穫與碎片辨識卡 */
+  .catch-card {
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 2px solid var(--line);
+    border-radius: 18px;
+    padding: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .catch-card.highlight {
+    border-color: var(--gold);
+  }
+
+  .catch-head {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .catch-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: rgba(5, 14, 24, 0.88);
+    border: 1.5px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    flex-shrink: 0;
+  }
+
+  .catch-title {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--gold);
+  }
+
+  .catch-sub {
+    font-size: 12px;
+    color: var(--mint);
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .engine-note {
+    background: rgba(5, 14, 24, 0.72);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text);
+  }
+
+  .cat-line {
+    font-size: 12px;
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* 東海角色圖鑑與七種碎片進度 */
+  .dex-panel {
+    background: var(--panel);
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    background: rgba(5, 14, 24, 0.65);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .tab-btn.active {
+    border-color: var(--mint);
+    color: var(--mint);
+    background: rgba(0, 245, 212, 0.12);
+  }
+
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-pill {
+    background: rgba(5, 14, 24, 0.7);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .filter-pill.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(255, 209, 102, 0.14);
+  }
+
+  .char-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .char-card {
+    background: rgba(5, 14, 24, 0.78);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 9px 10px;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .char-card.selected {
+    border-color: var(--gold);
+    background: rgba(255, 209, 102, 0.12);
+  }
+
+  .char-card.unlocked {
+    border-color: var(--mint);
+  }
+
+  .char-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .char-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10.5px;
+    color: var(--mint);
+    font-weight: 800;
+  }
+
+  .char-port-tag {
+    color: var(--sky);
+    font-weight: 700;
+  }
+
+  .prog-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+
+  .prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--mint), var(--gold));
+    transition: width 0.25s ease;
+  }
+
+  /* 七種碎片檢視器 */
+  .frag-box {
+    background: rgba(5, 14, 24, 0.76);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .frag-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--gold);
+  }
+
+  .frag-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .frag-row {
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 11.5px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(19, 45, 71, 0.45);
+    opacity: 0.58;
+  }
+
+  .frag-row.got {
+    opacity: 1;
+    border-color: rgba(0, 245, 212, 0.45);
+    background: rgba(0, 245, 212, 0.1);
+  }
+
+  .frag-row strong {
+    color: var(--sky);
+    margin-right: 4px;
+  }
+
+  .story-unlock {
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.45;
+    background: rgba(255, 209, 102, 0.12);
+    border: 1px solid rgba(255, 209, 102, 0.45);
+    color: #fff3cc;
+  }
+
+  .mem-log {
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .mem-item {
+    background: rgba(5, 14, 24, 0.78);
+    border-left: 3px solid var(--mint);
+    border-radius: 8px;
+    padding: 7px 9px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* 底部拇指固定行動區 */
+  .bottom-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(5, 16, 28, 0.94);
+    backdrop-filter: blur(10px);
+    border-top: 1.5px solid var(--line);
+    padding: 9px 12px calc(10px + var(--safe-b));
+    z-index: 20;
+  }
+
+  .dock-inner {
+    max-width: 580px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+
+  .main-btn {
+    height: 48px;
+    border-radius: 14px;
+    border: 2px solid #fff;
+    background: linear-gradient(90deg, var(--mint), var(--gold));
+    color: #05131f;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .main-btn.bite {
+    background: linear-gradient(90deg, var(--rose), var(--gold));
+    color: #170411;
+    box-shadow: 0 0 22px rgba(255, 77, 141, 0.85);
+  }
+
+  .sub-btn {
+    height: 48px;
+    padding: 0 14px;
+    border-radius: 14px;
+    border: 1.5px solid var(--gold);
+    background: var(--panel-2);
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- TOP ARC BAR -->
+  <div class="top-bar">
+    <div>
+      <div class="arc-title">🏴‍☠️🐱 CAT PIRATES 1.0 · 東海篇章</div>
+      <div class="arc-sub">[1] 風車村 × [2] 謝爾茲鎮 · 雙站開放探索</div>
+    </div>
+    <div class="top-pills">
+      <span class="pill" id="ui-frag-total">🧩 碎片 0/56</span>
+      <span class="pill" id="ui-story-total">📖 故事 0/8</span>
+      <button type="button" class="icon-btn" id="btn-audio">🔊</button>
+      <button type="button" class="icon-btn" id="btn-reset">♻️</button>
+    </div>
+  </div>
+
+  <!-- EAST BLUE ROUTE NODES（[1] 風車村 + [2] 謝爾茲鎮 雙站開放，其餘三區預留接口） -->
+  <div class="strip" id="node-strip"></div>
+
+  <!-- FOUR CATS -->
+  <div class="strip" id="cat-strip"></div>
+
+  <!-- CANVAS STAGE -->
+  <div class="stage" id="stage">
+    <canvas id="stage-canvas" width="580" height="245"></canvas>
+    <div class="hud-badge hud-l" id="hud-node">⚓ [1] 風車村</div>
+    <div class="hud-badge hud-r" id="hud-phase">IDLE</div>
+    <div class="bite-pop" id="bite-pop">⚡ 咬鉤了！快按下方拉竿！</div>
+  </div>
+
+  <!-- LATEST CATCH & FRAGMENT IDENTIFICATION -->
+  <div class="catch-card" id="catch-card">
+    <div class="catch-head">
+      <div class="catch-icon" id="catch-icon">🌊</div>
+      <div>
+        <div class="catch-title" id="catch-title">東海航路雙站已停靠就緒</div>
+        <div class="catch-sub" id="catch-sub">可在 [1] 風車村 與 [2] 謝爾茲鎮 自由切換垂釣、拼組 7 種角色碎片</div>
+      </div>
+    </div>
+    <div class="engine-note" id="engine-note">
+      <strong>AOE × ACC：</strong>點選上方港口可自由航行於風車村與謝爾茲鎮，收集專屬角色的七種碎片與港口故事。
+    </div>
+    <div class="cat-line" id="cat-line">🦖 O型恐龍貓：「風車村跟謝爾茲鎮的海風完全不同，來釣點大人物的線索吧！」</div>
+  </div>
+
+  <!-- ATLAS & WORLD MEMORY -->
+  <div class="dex-panel">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-tab="atlas">📖 東海角色圖鑑</button>
+      <button type="button" class="tab-btn" data-tab="memory">🧠 世界記憶</button>
+      <button type="button" class="tab-btn" data-tab="route">🗺️ 東海篇章接口</button>
+    </div>
+    <div id="tab-content"></div>
+  </div>
+</div>
+
+<!-- BOTTOM THUMB DOCK -->
+<div class="bottom-dock">
+  <div class="dock-inner">
+    <button type="button" class="main-btn" id="btn-main">🎣 拋竿</button>
+    <button type="button" class="sub-btn" id="btn-cancel">↩️ 收竿</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+ * 1. SEPARATED DATA LAYER（篇章區域、碎片規格、角色資料與引擎分離）
+ * ========================================================================== */
+const STORAGE_KEY = "cat_pirates_1_0_east_blue_v2";
+
+const FRAGMENT_TYPES = [
+  { key: "identity",   label: "1. 身份碎片", ask: "這個人是誰？" },
+  { key: "appearance", label: "2. 外觀碎片", ask: "外型與服裝線索" },
+  { key: "personality",label: "3. 性格碎片", ask: "個性與行動傾向" },
+  { key: "ability",    label: "4. 能力碎片", ask: "特殊技巧與本事" },
+  { key: "relation",   label: "5. 關係碎片", ask: "夥伴、對手或重要人物" },
+  { key: "story",      label: "6. 故事碎片", ask: "過去、相遇或重要事件" },
+  { key: "symbol",     label: "7. 象徵物碎片", ask: "最具代表性的信物" }
+];
+
+/* 東海五區：[1] 風車村 與 [2] 謝爾茲鎮 已開放，其餘三站預留擴充接口 */
+const EAST_BLUE_NODES = [
+  {
+    id: "foosha_village",
+    order: 1,
+    name: "風車村",
+    unlocked: true,
+    skyA: "#165b7d",
+    skyB: "#48a9c5",
+    seaA: "#0e7490",
+    seaB: "#062d40",
+    arcSummary: "東海航路起點：風車轉動的寧靜港灣，藏著草帽約定與酒館往事。",
+    fishPool: [
+      { emoji: "🐟", name: "風車村銀鱗魚", note: "海風吹過風車葉片，銀鱗魚在浪尖閃了一下。" },
+      { emoji: "🦀", name: "礁石小紅蟹", note: "橫著走過岸邊礁石，夾起一片海草。" }
+    ],
+    mysteryPool: [
+      { emoji: "🍾", name: "酒館空酒瓶", note: "像是某人在酒館暢飲後留下的紀念。" },
+      { emoji: "🌀", name: "轉動的小風車", note: "順著海風輕輕轉動，帶著港口的味道。" }
+    ]
+  },
+  {
+    id: "shells_town",
+    order: 2,
+    name: "謝爾茲鎮",
+    unlocked: true,
+    skyA: "#1d3557",
+    skyB: "#457b9d",
+    seaA: "#1b4965",
+    seaB: "#071e2e",
+    arcSummary: "海軍第 153 支部所在地：高牆下的基地廣場，交織著三刀流劍士、飯糰少女與暴君風波。",
+    fishPool: [
+      { emoji: "🐠", name: "基地港灣藍鰭魚", note: "沿著海軍軍艦船舷游過的結實海魚。" },
+      { emoji: "🦞", name: "鐵錨碼頭龍蝦", note: "躲在生鏽鐵錨旁揮舞大螯的港口老住客。" }
+    ],
+    mysteryPool: [
+      { emoji: "📋", name: "海軍基地布告欄殘片", note: "貼滿繁瑣禁令與雕像落成通知的舊紙張。" },
+      { emoji: "🧺", name: "小竹籃與海鹽", note: "像是有人偷偷翻過基地圍牆時留下的籃子。" }
+    ]
+  },
+  {
+    id: "orange_town",
+    order: 3,
+    name: "橘子鎮",
+    unlocked: false,
+    futureArcNote: "預留接口：第三站橘子鎮（橘子樹與馬戲團意外，後續篇章開放）"
+  },
+  {
+    id: "baratie",
+    order: 4,
+    name: "海上餐廳",
+    unlocked: false,
+    futureArcNote: "預留接口：第四站海上餐廳（海上料理與廚師信念，後續篇章開放）"
+  },
+  {
+    id: "cocoyashi_village",
+    order: 5,
+    name: "可可亞西村",
+    unlocked: false,
+    futureArcNote: "預留接口：第五站可可亞西村（橘子園與村莊守護記憶，後續篇章開放）"
+  }
+];
+
+const CATS = [
+  {
+    id: "dino", blood: "O型", name: "恐龍貓", icon: "🦖", waitMult: 0.92,
+    onIdle: (node) => `「${node.name}的海風好帶勁，來釣點大人物的線索吧！」`,
+    onBite: "「咬鉤啦！！快拉上來看看是什麼碎片！」",
+    onFrag: (ch, ft) => `恐龍貓興奮大喊：「找到 ${ch.name} 的【${ft.label}】啦！」`
+  },
+  {
+    id: "mage", blood: "A型", name: "魔法貓", icon: "🪄", waitMult: 1.00,
+    onIdle: (node) => `「${node.name}的水流紋理藏著不少線索，慢慢觀察。」`,
+    onBite: "「有反應了，拉竿看看這塊碎片的紋理。」",
+    onFrag: (ch, ft) => `魔法貓點頭記錄：「${ch.name} 的【${ft.label}】已納入辨識拼圖。」`
+  },
+  {
+    id: "devil", blood: "B型", name: "小惡魔貓", icon: "😈", waitMult: 0.88,
+    onIdle: (node) => `「嘿嘿，不知道在${node.name}會釣出誰的秘密碎片呢？」`,
+    onBite: "「中計啦！快拉竿，別讓它溜走！」",
+    onFrag: (ch, ft) => `小惡魔貓偷笑：「又挖出 ${ch.name} 一塊【${ft.label}】，越來越有趣了！」`
+  },
+  {
+    id: "sakura", blood: "AB型", name: "櫻花貓", icon: "🌸", waitMult: 1.06,
+    onIdle: (node) => `「每一塊碎片都像一段溫柔的記憶，在${node.name}慢慢收集吧。」`,
+    onBite: "「輕輕拉起海面的驚喜吧～」",
+    onFrag: (ch, ft) => `櫻花貓微笑道：「${ch.name} 的【${ft.label}】讓故事更完整了一點呢。」`
+  }
+];
+
+/* 東海角色池：包含 [1] 風車村 4 位角色 + [2] 謝爾茲鎮 4 位專屬角色 */
+const CHARACTERS = [
+  /* --- [1] 風車村角色 --- */
+  {
+    id: "luffy",
+    name: "魯夫",
+    emoji: "👒",
+    nodeId: "foosha_village",
+    fragments: {
+      identity: "風車村長大的少年，立志成為自由的冒險者。",
+      appearance: "臉頰有一道傷疤，總是戴著一頂珍愛的草帽。",
+      personality: "單純直率、樂觀熱血，對冒險充滿好奇。",
+      ability: "誤食果實後獲得伸縮自如的奇特身體。",
+      relation: "與村裡大人熟識，受紅髮傑克啟發甚深。",
+      story: "在風車村海邊許下約定，踏出出海的第一步。",
+      symbol: "一頂被海風吹拂也不肯放手的草帽。"
+    },
+    unlockedStory: "【故事解鎖｜風車村的約定】少年在風車村海邊接過草帽，把自由與遠方寫進心裡，東海的故事就此展開。"
+  },
+  {
+    id: "shanks_clue",
+    name: "紅髮傑克",
+    emoji: "🍷",
+    nodeId: "foosha_village",
+    fragments: {
+      identity: "停靠在風車村港口的豪邁海賊船長。",
+      appearance: "紅髮醒目、笑容爽朗，常在酒館舉杯暢飲。",
+      personality: "豁達不拘小節，重情義卻懂得原則。",
+      ability: "舉手投足間散發令人屏息的海上氣魄。",
+      relation: "把草帽託付給風車村少年的關鍵人物。",
+      story: "在港口留下笑聲與託付，成為少年心中航路的起點。",
+      symbol: "酒館杯中的酒香與託付出去的草帽。"
+    },
+    unlockedStory: "【故事解鎖｜港口的託付】傑克在風車村留下笑聲與草帽，讓一顆小小的種子在海風中發芽。"
+  },
+  {
+    id: "makino",
+    name: "瑪琪諾",
+    emoji: "🍺",
+    nodeId: "foosha_village",
+    fragments: {
+      identity: "風車村酒館的溫柔老闆娘。",
+      appearance: "親切笑容、俐落圍裙，總在港邊守望歸船。",
+      personality: "包容細心、溫柔沉穩，像姐姐般照顧大家。",
+      ability: "安撫躁動氣氛與傾聽每段出海心事。",
+      relation: "見證風車村孩子們成長與出發的守望者。",
+      story: "在酒館裡聽過無數海賊與村民的笑聲與告別。",
+      symbol: "酒館燈火與港邊揮手的身影。"
+    },
+    unlockedStory: "【故事解鎖｜酒館的守望】無論出海多久，風車村酒館的燈火始終記得每一位出發者的模樣。"
+  },
+  {
+    id: "higuma",
+    name: "山賊西格",
+    emoji: "🪓",
+    nodeId: "foosha_village",
+    fragments: {
+      identity: "闖入風車村酒館的粗魯山賊頭目。",
+      appearance: "體格魁梧、眼神兇狠，腰間佩著刀斧。",
+      personality: "囂張自大、看不起平靜港口的居民。",
+      ability: "靠蠻力與煙霧彈製造混亂。",
+      relation: "在風車村掀起衝突，讓港口氣氛緊繃的插曲。",
+      story: "因為一瓶酒與一句挑釁，打破了酒館原有的平靜。",
+      symbol: "酒館地板上灑落的酒液與煙霧。"
+    },
+    unlockedStory: "【故事解鎖｜酒館的風波】一場突如其來的衝突在風車村上演，也讓少年明白了守護與勇氣的分量。"
+  },
+
+  /* --- [2] 謝爾茲鎮專屬角色 --- */
+  {
+    id: "zoro",
+    name: "索隆",
+    emoji: "⚔️",
+    nodeId: "shells_town",
+    fragments: {
+      identity: "在謝爾茲鎮海軍基地被綁在木樁上的賞金獵人。",
+      appearance: "綠藻短髮、腹卷配三把佩刀，眼神銳利堅定。",
+      personality: "重信守諾、硬氣不屈，寧可忍飢也不低頭。",
+      ability: "同時駕馭三把刀的凌厲三刀流劍術。",
+      relation: "為了守護少女而甘願受罰，並與草帽少年結下夥伴之約。",
+      story: "在謝爾茲鎮廣場吃下沾了沙土的甜飯糰，決定一起出海。",
+      symbol: "三把佩刀與十字木樁上的繩結。"
+    },
+    unlockedStory: "【故事解鎖｜謝爾茲鎮的三刀誓言】廣場上的繩索解開之時，第一位夥伴正式加入航路，劍鋒指向世界頂點。"
+  },
+  {
+    id: "morgan",
+    name: "斧手蒙卡",
+    emoji: "🦾",
+    nodeId: "shells_town",
+    fragments: {
+      identity: "統治謝爾茲鎮的海軍第 153 支部大佐。",
+      appearance: "下顎裝著鋼鐵護顎，右臂改造成巨型戰斧。",
+      personality: "傲慢專橫、迷信權力，要求鎮民仰望他的雕像。",
+      ability: "揮動鐵斧劈裂地面與建築的怪力斬擊。",
+      relation: "把士兵與鎮民視為附庸，卻在基地廣場遭到反抗。",
+      story: "執意在海軍基地屋頂立起巨像，最終在混亂中倒台。",
+      symbol: "鋼鐵下顎與斷裂的巨型石像。"
+    },
+    unlockedStory: "【故事解鎖｜高牆與雕像的崩落】當暴君的巨像在謝爾茲鎮基地應聲倒下，鎮民與士兵終於迎來久違的自由呼吸。"
+  },
+  {
+    id: "helmeppo",
+    name: "貝魯梅伯",
+    emoji: "👱",
+    nodeId: "shells_town",
+    fragments: {
+      identity: "謝爾茲鎮基地司令官之子，仗勢欺人的少爺。",
+      appearance: "齊瀏海金色短髮、華麗西裝與誇張表情。",
+      personality: "愛炫耀、遇事慌張，習慣把父親名號掛在嘴邊。",
+      ability: "牽著寵物狼在鎮上橫行與臨時抱佛腳的求饒術。",
+      relation: "與劍士立下一個月之約卻暗中反悔，反而引爆基地風波。",
+      story: "在基地廣場失態大喊，成為謝爾茲鎮鬧劇的導火線。",
+      symbol: "閃亮亮的少爺徽章與滑稽的驚慌臉。"
+    },
+    unlockedStory: "【故事解鎖｜基地廣場的鬧劇】仗著靠山橫行的少爺在謝爾茲鎮踢到鐵板，一場荒唐風波就此收場。"
+  },
+  {
+    id: "rika",
+    name: "莉香",
+    emoji: "🍙",
+    nodeId: "shells_town",
+    fragments: {
+      identity: "住在謝爾茲鎮、心懷感激的勇敢小女孩。",
+      appearance: "綁著雙辮子、提著小竹籃偷偷靠近海軍基地高牆。",
+      personality: "善良真誠、不畏強權，只想報答救命之恩。",
+      ability: "親手捏出加了砂糖的溫暖海苔飯糰。",
+      relation: "翻牆送飯糰給被綁在木樁上的劍士，觸動了在場所有人。",
+      story: "她親手做的甜飯糰，成為謝爾茲鎮羈絆誕生的第一步。",
+      symbol: "一顆加了砂糖卻無比珍貴的白米飯糰。"
+    },
+    unlockedStory: "【故事解鎖｜甜飯糰的勇氣】一顆小小的砂糖飯糰跨越了謝爾茲鎮的高牆，串起了劍士與少年的第一段羈絆。"
+  }
+];
+
+/* ============================================================================
+ * 2. ACC WORLD MEMORY（世界記憶：圖鑑、碎片、事件、故事、貓咪互動）
+ * ========================================================================== */
+const WorldMemory = {
+  createDefault() {
+    return {
+      nodeId: "foosha_village",
+      catId: "dino",
+      selectedCharId: "luffy",
+      atlasFilter: "all", // all | foosha_village | shells_town
+      activeTab: "atlas",
+      audioOn: true,
+      charFragments: {},
+      events: [],
+      catLogs: []
+    };
+  },
+  load() {
+    const base = this.createDefault();
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return base;
+      const parsed = JSON.parse(raw);
+      return Object.assign(base, parsed, {
+        charFragments: parsed.charFragments || {},
+        events: Array.isArray(parsed.events) ? parsed.events.slice(0, 35) : [],
+        catLogs: Array.isArray(parsed.catLogs) ? parsed.catLogs.slice(0, 25) : []
+      });
+    } catch {
+      return base;
+    }
+  },
+  save(state) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        nodeId: state.nodeId,
+        catId: state.catId,
+        selectedCharId: state.selectedCharId,
+        atlasFilter: state.atlasFilter,
+        activeTab: state.activeTab,
+        audioOn: state.audioOn,
+        charFragments: state.charFragments,
+        events: state.events.slice(0, 35),
+        catLogs: state.catLogs.slice(0, 25)
+      }));
+    } catch {}
+  },
+  clear() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+};
+
+function getCharGotKeys(state, charId) {
+  const map = state.charFragments[charId] || {};
+  return FRAGMENT_TYPES.filter((f) => Boolean(map[f.key]));
+}
+
+function isCharUnlocked(state, charId) {
+  return getCharGotKeys(state, charId).length === FRAGMENT_TYPES.length;
+}
+
+/* ============================================================================
+ * 3. AOE ENGINE（世界意志：依目前停靠區域抽取魚獲、物品或角色碎片）
+ * ========================================================================== */
+const AOE = {
+  rollCatch(state, node) {
+    const nodeChars = CHARACTERS.filter((c) => c.nodeId === node.id);
+    const incompleteChars = nodeChars.filter((c) => !isCharUnlocked(state, c.id));
+    const poolChars = incompleteChars.length ? incompleteChars : nodeChars;
+
+    const r = Math.random();
+    if (r < 0.60 && poolChars.length) {
+      const ch = poolChars[Math.floor(Math.random() * poolChars.length)];
+      const gotMap = state.charFragments[ch.id] || {};
+      const missingTypes = FRAGMENT_TYPES.filter((f) => !gotMap[f.key]);
+      const chosenType = missingTypes.length
+        ? missingTypes[Math.floor(Math.random() * missingTypes.length)]
+        : FRAGMENT_TYPES[Math.floor(Math.random() * FRAGMENT_TYPES.length)];
+
+      return {
+        kind: "fragment",
+        emoji: ch.emoji,
+        title: `${ch.name} · ${chosenType.label}`,
+        sub: `${ch.fragments[chosenType.key]}`,
+        char: ch,
+        fragType: chosenType
+      };
+    }
+
+    if (r < 0.82 && node.mysteryPool?.length) {
+      const m = node.mysteryPool[Math.floor(Math.random() * node.mysteryPool.length)];
+      return { kind: "mystery", emoji: m.emoji, title: m.name, sub: m.note };
+    }
+
+    const f = node.fishPool[Math.floor(Math.random() * node.fishPool.length)];
+    return { kind: "fish", emoji: f.emoji, title: f.name, sub: f.note };
+  }
+};
+
+/* ============================================================================
+ * 4. AI BODY（音效、Canvas 動畫與防重複結算狀態機）
+ * ========================================================================== */
+let State = WorldMemory.load();
+State.phase = "IDLE";
+State.settled = false;
+State.plannedRoll = null;
+State.lastCatch = null;
+
+const AudioBody = {
+  ctx: null,
+  beep(f0, f1, dur = 0.15, type = "sine") {
+    if (!State.audioOn) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!this.ctx) this.ctx = new AC();
+      if (this.ctx.state === "suspended") this.ctx.resume();
+      const now = this.ctx.currentTime;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, now);
+      o.frequency.exponentialRampToValueAtTime(f1, now + dur);
+      g.gain.setValueAtTime(0.07, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(now); o.stop(now + dur + 0.02);
+    } catch {}
+  }
+};
+
+const canvas = document.getElementById("stage-canvas");
+const ctx = canvas.getContext("2d");
+const Vis = { t: 0, castP: 1, sink: 0, pop: 0 };
+
+function drawStage() {
+  Vis.t += 0.04;
+  if (State.phase === "CAST" && Vis.castP < 1) Vis.castP = Math.min(1, Vis.castP + 0.07);
+  if (Vis.pop > 0) Vis.pop = Math.max(0, Vis.pop - 0.022);
+
+  const node = EAST_BLUE_NODES.find((n) => n.id === State.nodeId) || EAST_BLUE_NODES[0];
+  const cat = CATS.find((c) => c.id === State.catId) || CATS[0];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const sky = ctx.createLinearGradient(0, 0, 0, 125);
+  sky.addColorStop(0, node.skyA || "#165b7d");
+  sky.addColorStop(1, node.skyB || "#48a9c5");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, canvas.width, 125);
+
+  const sea = ctx.createLinearGradient(0, 125, 0, canvas.height);
+  sea.addColorStop(0, node.seaA || "#0e7490");
+  sea.addColorStop(1, node.seaB || "#062d40");
+  ctx.fillStyle = sea;
+  ctx.fillRect(0, 125, canvas.width, canvas.height - 125);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 2;
+  for (let r = 0; r < 3; r++) {
+    const y0 = 143 + r * 34;
+    ctx.beginPath();
+    for (let x = 0; x <= canvas.width; x += 20) {
+      const y = y0 + Math.sin(x * 0.03 + Vis.t * 1.5 + r) * 3;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  const catX = 104, catY = 125;
+  ctx.font = "42px serif";
+  ctx.textAlign = "center";
+  ctx.fillText(cat.icon, catX, catY - 4);
+
+  const tipX = catX + 86, tipY = catY - 52 + Math.sin(Vis.t * 2) * 2;
+  ctx.strokeStyle = "#ffd166";
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(catX + 12, catY - 16);
+  ctx.quadraticCurveTo(catX + 48, catY - 40, tipX, tipY);
+  ctx.stroke();
+
+  const endX = 395, endY = 152 + Math.sin(Vis.t * 2.2) * 2 + Vis.sink;
+  const bx = tipX + (endX - tipX) * Vis.castP;
+  const by = tipY + (endY - tipY) * Vis.castP - Math.sin(Vis.castP * Math.PI) * 38;
+
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(bx, by - 4);
+  ctx.stroke();
+
+  if (State.phase !== "IDLE") {
+    ctx.fillStyle = State.phase === "BITE" ? "#ff4d8d" : "#ffd166";
+    ctx.beginPath();
+    ctx.arc(bx, by, 6.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (State.lastCatch) {
+    ctx.font = "48px serif";
+    ctx.fillText(State.lastCatch.emoji, bx, by - 22 - Math.sin(Vis.pop * Math.PI) * 18);
+  }
+
+  requestAnimationFrame(drawStage);
+}
+
+const Flow = {
+  timers: [],
+  clear() { while (this.timers.length) clearTimeout(this.timers.pop()); },
+  later(fn, ms) {
+    const id = setTimeout(() => {
+      const i = this.timers.indexOf(id);
+      if (i !== -1) this.timers.splice(i, 1);
+      fn();
+    }, ms);
+    this.timers.push(id);
+  },
+  cancelToIdle(msg = "已收竿，海面恢復平靜。") {
+    this.clear();
+    State.phase = "IDLE";
+    State.settled = false;
+    State.plannedRoll = null;
+    Vis.sink = 0;
+    renderAll(msg);
+  },
+  cast() {
+    if (State.phase !== "IDLE") return;
+    this.clear();
+    State.settled = false;
+    Vis.castP = 0;
+    Vis.sink = 0;
+    State.phase = "CAST";
+    AudioBody.beep(310, 620, 0.15, "sine");
+
+    const node = EAST_BLUE_NODES.find((n) => n.id === State.nodeId) || EAST_BLUE_NODES[0];
+    const cat = CATS.find((c) => c.id === State.catId) || CATS[0];
+    renderAll(`拋出釣鉤，等待【${node.name}】的浪花帶來收穫……`);
+
+    this.later(() => {
+      if (State.phase !== "CAST") return;
+      State.plannedRoll = AOE.rollCatch(State, node);
+      State.phase = "WAIT";
+      renderAll(`浮標在${node.name}海面隨波起伏，靜靜等待魚訊……`);
+
+      const waitMs = Math.max(1050, Math.round((1300 + Math.random() * 1750) * cat.waitMult));
+      this.later(() => {
+        if (State.phase !== "WAIT") return;
+        Vis.sink = 6;
+        State.phase = "NIBBLE";
+        AudioBody.beep(450, 330, 0.1, "triangle");
+        renderAll("浮標輕輕點了一下，水下似乎有動靜！");
+
+        this.later(() => {
+          if (State.phase !== "NIBBLE") return;
+          Vis.sink = 14;
+          State.phase = "BITE";
+          AudioBody.beep(760, 1020, 0.18, "square");
+          const st = document.getElementById("stage");
+          st.classList.remove("shake-bite");
+          void st.offsetWidth;
+          st.classList.add("shake-bite");
+          renderAll("⚡ 咬鉤了！快按下方按鈕拉竿！");
+
+          this.later(() => {
+            if (State.phase !== "BITE") return;
+            AudioBody.beep(280, 170, 0.15, "sine");
+            Flow.cancelToIdle("這次的魚訊溜走了，沒有任何損失，隨時再試一次。");
+          }, 2200);
+        }, 520);
+      }, waitMs);
+    }, 340);
+  },
+  reel() {
+    if (State.phase !== "BITE" || State.settled) return;
+    State.settled = true;
+    this.clear();
+
+    const node = EAST_BLUE_NODES.find((n) => n.id === State.nodeId) || EAST_BLUE_NODES[0];
+    const cat = CATS.find((c) => c.id === State.catId) || CATS[0];
+    const item = State.plannedRoll || AOE.rollCatch(State, node);
+    State.plannedRoll = null;
+    State.lastCatch = item;
+    Vis.sink = 0;
+    Vis.pop = 1;
+    AudioBody.beep(520, 920, 0.2, "triangle");
+
+    let noteText = "";
+    let catSay = "";
+
+    if (item.kind === "fragment") {
+      const ch = item.char;
+      const ft = item.fragType;
+      if (!State.charFragments[ch.id]) State.charFragments[ch.id] = {};
+      const isNewFrag = !State.charFragments[ch.id][ft.key];
+      State.charFragments[ch.id][ft.key] = true;
+      State.selectedCharId = ch.id;
+      if (State.atlasFilter !== "all" && State.atlasFilter !== ch.nodeId) {
+        State.atlasFilter = ch.nodeId;
+      }
+
+      const gotCount = getCharGotKeys(State, ch.id).length;
+      const justCompleted = gotCount === FRAGMENT_TYPES.length && isNewFrag;
+
+      noteText = isNewFrag
+        ? `🧩 在【${node.name}】取得【${ch.name}】的「${ft.label}」（${gotCount}/7）${justCompleted ? " — 7/7 拼齊！角色故事已解鎖！" : ""}`
+        : `🧩 在【${node.name}】再次感應到【${ch.name}】的「${ft.label}」（目前 ${gotCount}/7），世界記憶加深。`;
+
+      catSay = cat.onFrag(ch, ft);
+      State.events.unshift(`[${node.name}] ${noteText}`);
+      State.catLogs.unshift(`[${node.name}] ${cat.icon}${cat.name}：${catSay}`);
+    } else {
+      noteText = `${item.kind === "mystery" ? "🎁 神秘物品" : "🐟 普通魚獲"}【${item.title}】：${item.sub}`;
+      catSay = `${cat.icon} ${cat.blood}${cat.name}：「在${node.name}釣到『${item.title}』，也是航路記憶的一部分！」`;
+      State.events.unshift(`[${node.name}] ${noteText}`);
+      State.catLogs.unshift(`[${node.name}] ${cat.icon}${cat.name} 留意了「${item.title}」。`);
+    }
+
+    State.events = State.events.slice(0, 35);
+    State.catLogs = State.catLogs.slice(0, 25);
+    WorldMemory.save(State);
+
+    State.phase = "REWARD";
+    renderAll(noteText, catSay, true);
+
+    this.later(() => {
+      if (State.phase !== "REWARD") return;
+      State.phase = "IDLE";
+      renderAll();
+    }, 1050);
+  }
+};
+
+/* ============================================================================
+ * 5. UI RENDERER
+ * ========================================================================== */
+function renderTopAndStrips() {
+  const totalFrags = CHARACTERS.reduce((sum, c) => sum + getCharGotKeys(State, c.id).length, 0);
+  const maxFrags = CHARACTERS.length * FRAGMENT_TYPES.length;
+  const unlockedChars = CHARACTERS.filter((c) => isCharUnlocked(State, c.id)).length;
+
+  document.getElementById("ui-frag-total").textContent = `🧩 碎片 ${totalFrags}/${maxFrags}`;
+  document.getElementById("ui-story-total").textContent = `📖 故事 ${unlockedChars}/${CHARACTERS.length}`;
+  document.getElementById("btn-audio").textContent = State.audioOn ? "🔊" : "🔇";
+
+  const node = EAST_BLUE_NODES.find((n) => n.id === State.nodeId) || EAST_BLUE_NODES[0];
+  document.getElementById("hud-node").textContent = `⚓ [${node.order}] ${node.name}`;
+  document.getElementById("hud-phase").textContent = State.phase;
+
+  const pop = document.getElementById("bite-pop");
+  const mainBtn = document.getElementById("btn-main");
+  mainBtn.classList.remove("bite");
+  if (State.phase === "BITE") {
+    pop.classList.add("show");
+    mainBtn.textContent = "⚡ 咬鉤！快拉竿！";
+    mainBtn.classList.add("bite");
+  } else {
+    pop.classList.remove("show");
+    if (State.phase === "IDLE") mainBtn.textContent = "🎣 拋竿";
+    else if (State.phase === "CAST") mainBtn.textContent = "🌊 拋竿中...";
+    else if (State.phase === "WAIT" || State.phase === "NIBBLE") mainBtn.textContent = "⏳ 等魚訊中...";
+    else mainBtn.textContent = "✨ 收穫辨識中...";
+  }
+
+  document.getElementById("node-strip").innerHTML = EAST_BLUE_NODES.map((n) => `
+    <button type="button" class="node-btn ${n.id === State.nodeId ? "active" : ""} ${!n.unlocked ? "locked" : ""}" data-node="${n.id}">
+      ${n.unlocked ? "⚓" : "🔒"} [${n.order}] ${n.name}
+    </button>
+  `).join("");
+
+  document.getElementById("cat-strip").innerHTML = CATS.map((c) => `
+    <button type="button" class="cat-btn ${c.id === State.catId ? "active" : ""}" data-cat="${c.id}">
+      ${c.icon} ${c.blood}${c.name}
+    </button>
+  `).join("");
+
+  document.querySelectorAll("[data-node]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = EAST_BLUE_NODES.find((n) => n.id === btn.dataset.node);
+      if (!target || !target.unlocked) {
+        document.getElementById("engine-note").innerHTML = `<strong>篇章接口提示：</strong>${target?.futureArcNote || "此區域將於後續篇章開放。"}`;
+        return;
+      }
+      State.nodeId = target.id;
+      State.atlasFilter = target.id;
+      const firstInNode = CHARACTERS.find((c) => c.nodeId === target.id);
+      if (firstInNode) State.selectedCharId = firstInNode.id;
+      WorldMemory.save(State);
+      Flow.cancelToIdle(`已停靠【[${target.order}] ${target.name}】：${target.arcSummary}`);
+    });
+  });
+
+  document.querySelectorAll("[data-cat]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      State.catId = btn.dataset.cat;
+      WorldMemory.save(State);
+      const c = CATS.find((x) => x.id === State.catId);
+      renderAll(null, `${c.icon} ${c.blood}${c.name}：${c.onIdle(node)}`);
+    });
+  });
+}
+
+function renderTabBody() {
+  document.querySelectorAll(".tab-btn").forEach((t) => {
+    t.classList.toggle("active", t.dataset.tab === State.activeTab);
+  });
+  const container = document.getElementById("tab-content");
+
+  if (State.activeTab === "atlas") {
+    const visibleChars = State.atlasFilter === "all"
+      ? CHARACTERS
+      : CHARACTERS.filter((c) => c.nodeId === State.atlasFilter);
+
+    const selected = visibleChars.find((c) => c.id === State.selectedCharId) || visibleChars[0] || CHARACTERS[0];
+    State.selectedCharId = selected.id;
+
+    const gotKeys = new Set(getCharGotKeys(State, selected.id).map((f) => f.key));
+    const pct = Math.round((gotKeys.size / FRAGMENT_TYPES.length) * 100);
+    const unlocked = gotKeys.size === FRAGMENT_TYPES.length;
+    const selectedNode = EAST_BLUE_NODES.find((n) => n.id === selected.nodeId);
+
+    const filterHtml = `
+      <div class="filter-bar">
+        <button type="button" class="filter-pill ${State.atlasFilter === "all" ? "active" : ""}" data-filter="all">全部東海 (${CHARACTERS.length})</button>
+        <button type="button" class="filter-pill ${State.atlasFilter === "foosha_village" ? "active" : ""}" data-filter="foosha_village">[1] 風車村 (4)</button>
+        <button type="button" class="filter-pill ${State.atlasFilter === "shells_town" ? "active" : ""}" data-filter="shells_town">[2] 謝爾茲鎮 (4)</button>
+      </div>
+    `;
+
+    const cardsHtml = visibleChars.map((ch) => {
+      const cnt = getCharGotKeys(State, ch.id).length;
+      const done = cnt === FRAGMENT_TYPES.length;
+      const statusText = done ? "故事已解鎖" : cnt > 0 ? `碎片收集中 ${cnt}/7` : "未發現";
+      const portName = ch.nodeId === "shells_town" ? "謝爾茲鎮" : "風車村";
+      return `
+        <button type="button" class="char-card ${ch.id === selected.id ? "selected" : ""} ${done ? "unlocked" : ""}" data-pick-char="${ch.id}">
+          <div class="char-top">
+            <span>${cnt > 0 ? ch.emoji : "❓"} ${cnt > 0 ? ch.name : "未知角色"}</span>
+            <span>${cnt}/7</span>
+          </div>
+          <div class="char-meta-row">
+            <span>${statusText}</span>
+            <span class="char-port-tag">${portName}</span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${Math.round((cnt / 7) * 100)}%"></div></div>
+        </button>
+      `;
+    }).join("");
+
+    const fragsHtml = FRAGMENT_TYPES.map((ft) => {
+      const has = gotKeys.has(ft.key);
+      return `
+        <div class="frag-row ${has ? "got" : ""}">
+          <strong>${has ? "✅" : "⬜"} ${ft.label}：</strong>
+          <span>${has ? selected.fragments[ft.key] : `尚未取得（${ft.ask}）`}</span>
+        </div>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      ${filterHtml}
+      <div class="char-list" style="margin-top:8px;">${cardsHtml}</div>
+      <div class="frag-box" style="margin-top:8px;">
+        <div class="frag-header">
+          <span>${gotKeys.size > 0 ? `${selected.emoji} ${selected.name}（${selectedNode?.name || "東海"}）` : `❓ 未知角色拼圖（${selectedNode?.name || "東海"}）`}</span>
+          <span>已取得 ${gotKeys.size} / 7（${pct}%）</span>
+        </div>
+        <div class="frag-grid">${fragsHtml}</div>
+        <div class="story-unlock">
+          ${unlocked ? selected.unlockedStory : `集滿 7 種角色碎片（目前 ${gotKeys.size}/7）即可解鎖完整角色故事。`}
+        </div>
+      </div>
+    `;
+
+    document.querySelectorAll("[data-filter]").forEach((fBtn) => {
+      fBtn.addEventListener("click", () => {
+        State.atlasFilter = fBtn.dataset.filter;
+        WorldMemory.save(State);
+        renderTabBody();
+      });
+    });
+
+    document.querySelectorAll("[data-pick-char]").forEach((b) => {
+      b.addEventListener("click", () => {
+        State.selectedCharId = b.dataset.pickChar;
+        WorldMemory.save(State);
+        renderTabBody();
+      });
+    });
+  } else if (State.activeTab === "memory") {
+    const merged = [
+      ...State.events.map((e) => `<div class="mem-item">🧩 ${e}</div>`),
+      ...State.catLogs.map((c) => `<div class="mem-item">🐱 ${c}</div>`)
+    ];
+    container.innerHTML = `<div class="mem-log">${
+      merged.length ? merged.join("") : `<div class="mem-item">世界記憶已就緒，拋竿探索風車村與謝爾茲鎮吧。</div>`
+    }</div>`;
+  } else {
+    container.innerHTML = `<div class="mem-log">${
+      EAST_BLUE_NODES.map((n) => {
+        const nodeChars = CHARACTERS.filter((c) => c.nodeId === n.id);
+        const doneCount = nodeChars.filter((c) => isCharUnlocked(State, c.id)).length;
+        return `
+          <div class="mem-item">
+            <strong>${n.unlocked ? "⚓ 已開放" : "🔒 篇章預留"} · [${n.order}] ${n.name}${n.unlocked ? `（故事解鎖 ${doneCount}/${nodeChars.length}）` : ""}</strong>
+            <div>${n.unlocked ? n.arcSummary : n.futureArcNote}</div>
+          </div>
+        `;
+      }).join("")
+    }</div>`;
+  }
+}
+
+function renderAll(noteOverride, catOverride, isCatch = false) {
+  renderTopAndStrips();
+  const node = EAST_BLUE_NODES.find((n) => n.id === State.nodeId) || EAST_BLUE_NODES[0];
+  const cat = CATS.find((c) => c.id === State.catId) || CATS[0];
+  const card = document.getElementById("catch-card");
+
+  if (isCatch && State.lastCatch) {
+    card.classList.add("highlight");
+    document.getElementById("catch-icon").textContent = State.lastCatch.emoji;
+    document.getElementById("catch-title").textContent = State.lastCatch.title;
+    document.getElementById("catch-sub").textContent = State.lastCatch.sub;
+  }
+
+  if (noteOverride) {
+    document.getElementById("engine-note").innerHTML = `<strong>AOE × ACC：</strong>${noteOverride}`;
+  }
+  if (catOverride) {
+    document.getElementById("cat-line").textContent = catOverride;
+  } else if (State.phase === "IDLE") {
+    document.getElementById("cat-line").textContent = `${cat.icon} ${cat.blood}${cat.name}：${cat.onIdle(node)}`;
+  } else if (State.phase === "BITE") {
+    document.getElementById("cat-line").textContent = `${cat.icon} ${cat.blood}${cat.name}：${cat.onBite}`;
+  }
+
+  renderTabBody();
+}
+
+document.getElementById("btn-main").addEventListener("click", () => {
+  if (State.phase === "IDLE") Flow.cast();
+  else if (State.phase === "BITE") Flow.reel();
+});
+
+document.getElementById("btn-cancel").addEventListener("click", () => {
+  if (State.phase !== "IDLE") Flow.cancelToIdle();
+});
+
+document.getElementById("btn-audio").addEventListener("click", () => {
+  State.audioOn = !State.audioOn;
+  WorldMemory.save(State);
+  renderTopAndStrips();
+});
+
+document.getElementById("btn-reset").addEventListener("click", () => {
+  Flow.clear();
+  WorldMemory.clear();
+  State = WorldMemory.createDefault();
+  State.phase = "IDLE";
+  State.settled = false;
+  State.plannedRoll = null;
+  State.lastCatch = null;
+  document.getElementById("catch-card").classList.remove("highlight");
+  document.getElementById("catch-icon").textContent = "🌊";
+  document.getElementById("catch-title").textContent = "東海航路雙站已停靠就緒";
+  document.getElementById("catch-sub").textContent = "世界記憶已重置，重新展開風車村與謝爾茲鎮探索。";
+  renderAll("<strong>AOE × ACC：</strong>已清空本機世界記憶，回到東海起點。");
+});
+
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    State.activeTab = btn.dataset.tab;
+    WorldMemory.save(State);
+    renderTabBody();
+  });
+});
+
+renderAll();
+requestAnimationFrame(drawStage);
+</script>
+</body>
+</html>
